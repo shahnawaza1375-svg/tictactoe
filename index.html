@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎮 Tic-Tac-Toe</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        background: linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)),
+            url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920') center/cover fixed no-repeat;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 15px;
+        color: white;
+        overflow-x: hidden;
+    }
+
+    .container {
+        background: rgba(255,255,255,0.12);
+        backdrop-filter: blur(12px);
+        border-radius: 25px;
+        padding: 22px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        border: 1px solid rgba(255,255,255,0.25);
+        max-width: 500px;
+        width: 100%;
+    }
+
+    h1 {
+        text-align: center;
+        font-size: 1.7em;
+        margin-bottom: 15px;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .modes {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+    }
+
+    .pill {
+        padding: 8px 16px;
+        border: 2px solid rgba(255,255,255,0.4);
+        background: rgba(255,255,255,0.1);
+        color: white;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 0.85em;
+        font-weight: bold;
+        transition: all 0.2s;
+    }
+
+    .pill.active {
+        background: white;
+        color: #764ba2;
+        border-color: white;
+    }
+
+    .pill:hover { transform: translateY(-2px); }
+
+    .difficulty {
+        display: flex;
+        gap: 6px;
+        justify-content: center;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+    }
+
+    .scoreboard {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .score-card {
+        flex: 1;
+        background: rgba(255,255,255,0.15);
+        border-radius: 14px;
+        padding: 8px;
+        text-align: center;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .score-card .label { font-size: 0.72em; opacity: 0.9; }
+    .score-card .score { font-size: 1.5em; font-weight: bold; }
+    .score-card.x-card { border-left: 4px solid #e74c3c; }
+    .score-card.o-card { border-left: 4px solid #3498db; }
+    .score-card.tie-card { border-left: 4px solid #f39c12; }
+
+    #status {
+        text-align: center;
+        font-size: 1.05em;
+        margin-bottom: 12px;
+        min-height: 26px;
+        font-weight: bold;
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+    }
+
+    .board {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-bottom: 12px;
+        aspect-ratio: 1;
+    }
+
+    .cell {
+        background: rgba(255,255,255,0.95);
+        border-radius: 15px;
+        font-size: 2.8em;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        user-select: none;
+        color: #333;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+
+    .cell:hover:not(.taken) {
+        transform: scale(1.05);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.25);
+    }
+
+    .cell.x { color: #e74c3c; }
+    .cell.o { color: #3498db; }
+    .cell.taken { cursor: not-allowed; }
+
+    .cell.win {
+        background: #2ecc71 !important;
+        color: white !important;
+        animation: pulse 0.6s ease infinite alternate;
+    }
+
+    @keyframes pulse {
+        from { transform: scale(1); }
+        to { transform: scale(1.08); }
+    }
+
+    .cell.pop { animation: popIn 0.3s ease; }
+
+    @keyframes popIn {
+        0% { transform: scale(0); }
+        70% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+    }
+
+    .actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .action-btn {
+        flex: 1;
+        padding: 12px;
+        border: none;
+        border-radius: 20px;
+        font-size: 0.9em;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: white;
+    }
+
+    .btn-new { background: #2ecc71; }
+    .btn-new:hover { background: #27ae60; transform: translateY(-2px); }
+    .btn-reset { background: #e74c3c; }
+    .btn-reset:hover { background: #c0392b; transform: translateY(-2px); }
+
+    .confetti {
+        position: fixed;
+        width: 10px;
+        height: 10px;
+        top: -10px;
+        z-index: 1000;
+        pointer-events: none;
+        animation: fall linear forwards;
+    }
+
+    @keyframes fall {
+        to { transform: translateY(105vh) rotate(720deg); opacity: 0; }
+    }
+
+    @media (max-width: 400px) {
+        h1 { font-size: 1.4em; }
+        .cell { font-size: 2.2em; border-radius: 12px; }
+        .container { padding: 15px; }
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎮 Tic-Tac-Toe</h1>
+
+    <div class="modes">
+        <button class="pill active" onclick="setMode('pvp', event)">👥 2 Players</button>
+        <button class="pill" onclick="setMode('ai', event)">🤖 vs AI</button>
+    </div>
+
+    <div class="difficulty" id="difficulty" style="display:none;">
+        <button class="pill" onclick="setDifficulty('easy', event)">😊 Easy</button>
+        <button class="pill active" onclick="setDifficulty('medium', event)">😐 Medium</button>
+        <button class="pill" onclick="setDifficulty('hard', event)">😈 Hard</button>
+    </div>
+
+    <div class="scoreboard">
+        <div class="score-card x-card">
+            <div class="label" id="labelX">Player X</div>
+            <div class="score" id="scoreX">0</div>
+        </div>
+        <div class="score-card tie-card">
+            <div class="label">Ties</div>
+            <div class="score" id="scoreTie">0</div>
+        </div>
+        <div class="score-card o-card">
+            <div class="label" id="labelO">Player O</div>
+            <div class="score" id="scoreO">0</div>
+        </div>
+    </div>
+
+    <div id="status">Player X's turn</div>
+    <div class="board" id="board"></div>
+
+    <div class="actions">
+        <button class="action-btn btn-new" onclick="newGame()">🔄 New Game</button>
+        <button class="action-btn btn-reset" onclick="resetAll()">🗑️ Reset Scores</button>
+    </div>
+</div>
+
+<script>
+let board = ["","","","","","","","",""];
+let currentPlayer = "X";
+let gameOver = false;
+let vsAI = false;
+let difficulty = "medium";
+let aiThinking = false;
+let scores = { X: 0, O: 0, Tie: 0 };
+
+const wins = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+];
+
+const boardEl = document.getElementById("board");
+const statusEl = document.getElementById("status");
+
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+
+function playTone(freq, duration = 0.1, type = "sine") {
+    try {
+        if (!audioCtx) audioCtx = new AudioCtx();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    } catch(e) {}
+}
+
+function soundClick() { playTone(600, 0.08); }
+function soundWin() {
+    playTone(523, 0.15);
+    setTimeout(() => playTone(659, 0.15), 120);
+    setTimeout(() => playTone(784, 0.3), 240);
+}
+function soundTie() { playTone(400, 0.3, "triangle"); }
+
+function initBoard() {
+    boardEl.innerHTML = "";
+    board.forEach((_, i) => {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        cell.dataset.index = i;
+        cell.addEventListener("click", () => handleClick(i));
+        boardEl.appendChild(cell);
+    });
+}
+
+function handleClick(i) {
+    if (gameOver || aiThinking || board[i] !== "") return;
+    makeMove(i, currentPlayer);
+    if (gameOver) return;
+    if (vsAI && currentPlayer === "O") {
+        aiThinking = true;
+        statusEl.textContent = "🤖 AI is thinking...";
+        setTimeout(() => {
+            const move = getAIMove();
+            if (move !== -1) makeMove(move, "O");
+            aiThinking = false;
+        }, 400);
+    }
+}
+
+function makeMove(i, player) {
+    board[i] = player;
+    const cell = boardEl.children[i];
+    cell.textContent = player;
+    cell.classList.add(player.toLowerCase(), "taken", "pop");
+    soundClick();
+
+    const result = checkWinner();
+    if (result) {
+        endGame(result);
+    } else {
+        currentPlayer = currentPlayer === "X" ? "O" : "X";
+        statusEl.textContent = `Player ${currentPlayer}'s turn`;
+    }
+}
+
+function checkWinner() {
+    for (const w of wins) {
+        if (board[w[0]] && board[w[0]] === board[w[1]] && board[w[1]] === board[w[2]]) {
+            return { winner: board[w[0]], line: w };
+        }
+    }
+    return board.includes("") ? null : { winner: "Tie", line: null };
+}
+
+function endGame(result) {
+    gameOver = true;
+    if (result.winner === "Tie") {
+        scores.Tie++;
+        statusEl.textContent = "🤝 It's a Tie!";
+        soundTie();
+    } else {
+        scores[result.winner]++;
+        const isAIWin = vsAI && result.winner === "O";
+        statusEl.textContent = isAIWin ? "🤖 AI Wins!" : `🎉 Player ${result.winner} Wins!`;
+        result.line.forEach(i => boardEl.children[i].classList.add("win"));
+        soundWin();
+        if (!isAIWin) launchConfetti();
+    }
+    updateScores();
+}
+
+function updateScores() {
+    document.getElementById("scoreX").textContent = scores.X;
+    document.getElementById("scoreO").textContent = scores.O;
+    document.getElementById("scoreTie").textContent = scores.Tie;
+}
+
+function getAIMove() {
+    const empty = board.map((v,i) => v === "" ? i : null).filter(v => v !== null);
+    if (empty.length === 0) return -1;
+    if (difficulty === "easy") {
+        if (Math.random() < 0.3) return findBestMove();
+        return empty[Math.floor(Math.random() * empty.length)];
+    }
+    if (difficulty === "medium") {
+        if (Math.random() < 0.7) return findBestMove();
+        return empty[Math.floor(Math.random() * empty.length)];
+    }
+    return findBestMove();
+}
+
+function findBestMove() {
+    let bestScore = -Infinity;
+    let bestMove = -1;
+    for (let i = 0; i < 9; i++) {
+        if (board[i] === "") {
+            board[i] = "O";
+            const score = minimax(board, 0, false, -Infinity, Infinity);
+            board[i] = "";
+            if (score > bestScore) {
+                bestScore = score;
+                bestMove = i;
+            }
+        }
+    }
+    return bestMove;
+}
+
+function minimax(b, depth, isMax, alpha, beta) {
+    const winner = quickWinner(b);
+    if (winner === "O") return 10 - depth;
+    if (winner === "X") return depth - 10;
+    if (winner === "Tie") return 0;
+
+    if (isMax) {
+        let best = -Infinity;
+        for (let i = 0; i < 9; i++) {
+            if (b[i] === "") {
+                b[i] = "O";
+                best = Math.max(best, minimax(b, depth+1, false, alpha, beta));
+                b[i] = "";
+                alpha = Math.max(alpha, best);
+                if (beta <= alpha) break;
+            }
+        }
+        return best;
+    } else {
+        let best = Infinity;
+        for (let i = 0; i < 9; i++) {
+            if (b[i] === "") {
+                b[i] = "X";
+                best = Math.min(best, minimax(b, depth+1, true, alpha, beta));
+                b[i] = "";
+                beta = Math.min(beta, best);
+                if (beta <= alpha) break;
+            }
+        }
+        return best;
+    }
+}
+
+function quickWinner(b) {
+    for (const w of wins) {
+        if (b[w[0]] && b[w[0]] === b[w[1]] && b[w[1]] === b[w[2]]) return b[w[0]];
+    }
+    return b.includes("") ? null : "Tie";
+}
+
+function launchConfetti() {
+    const colors = ["#e74c3c", "#3498db", "#2ecc71", "#f39c12", "#9b59b6", "#1abc9c"];
+    for (let i = 0; i < 60; i++) {
+        setTimeout(() => {
+            const c = document.createElement("div");
+            c.className = "confetti";
+            c.style.left = Math.random() * 100 + "vw";
+            c.style.background = colors[Math.floor(Math.random() * colors.length)];
+            c.style.borderRadius = Math.random() > 0.5 ? "50%" : "0";
+            const d = 2 + Math.random() * 2;
+            c.style.animationDuration = d + "s";
+            document.body.appendChild(c);
+            setTimeout(() => c.remove(), d * 1000);
+        }, i * 25);
+    }
+}
+
+function setMode(mode, event) {
+    vsAI = (mode === "ai");
+    document.querySelectorAll(".modes .pill").forEach(b => b.classList.remove("active"));
+    event.target.classList.add("active");
+    document.getElementById("difficulty").style.display = vsAI ? "flex" : "none";
+    document.getElementById("labelO").textContent = vsAI ? "🤖 AI" : "Player O";
+    newGame();
+}
+
+function setDifficulty(d, event) {
+    difficulty = d;
+    document.querySelectorAll(".difficulty .pill").forEach(b => b.classList.remove("active"));
+    if (event) event.target.classList.add("active");
+}
+
+function newGame() {
+    board = ["","","","","","","","",""];
+    currentPlayer = "X";
+    gameOver = false;
+    aiThinking = false;
+    statusEl.textContent = "Player X's turn";
+    initBoard();
+}
+
+function resetAll() {
+    if (!confirm("Reset all scores?")) return;
+    scores = { X: 0, O: 0, Tie: 0 };
+    updateScores();
+    newGame();
+}
+
+initBoard();
+</script>
+</body>
+</html>
